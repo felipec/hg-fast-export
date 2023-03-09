@@ -7,9 +7,12 @@
 
 import sys
 import os
+import re
 
 import mercurial.hg
 import mercurial.ui
+
+author_re = re.compile(r'^[^<>]* <[^<>]+>$')
 
 def wr(arg):
     os.write(1, arg.encode() + b'\n')
@@ -41,7 +44,11 @@ class Marks:
         return self.marks[ctx.hex()]
 
 def convert_to_git_user(user):
-    return user.decode()
+    user = user.decode()
+    if author_re.match(user):
+        return user
+    else:
+        return 'Unknown <unknown>'
 
 def get_filechanges(repo, ctx, parents, files):
     modified = frozenset(fname for fname in files if fname in ctx)

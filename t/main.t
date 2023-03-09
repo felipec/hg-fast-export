@@ -46,4 +46,29 @@ test_expect_success 'basic' '
 	check gitrepo @ zero
 '
 
+author() {
+	echo bump >> content &&
+	hg commit -u "$1" -m "add with $1"
+}
+
+test_expect_success 'authors' '
+	test_when_finished "rm -rf hgrepo gitrepo" &&
+
+	(
+	hg init hgrepo &&
+	cd hgrepo &&
+
+	touch content &&
+	hg add content &&
+
+	author "Alpha <alpha@sane.com>" &&
+	author "beta@example.com" &&
+	author "gamma" &&
+	author "Delta <test@example.com" &&
+	author "Epsilon <non@sense.com <mailto:non@sense.com>>"
+	) &&
+
+	git_clone hgrepo gitrepo
+'
+
 test_done
