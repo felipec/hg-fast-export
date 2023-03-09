@@ -18,8 +18,7 @@ check() {
 git_clone() {
 	(
 	git init -q "$2" &&
-	fast-export "$1" | git -C "$2" fast-import --quiet &&
-	git -C "$2" reset --hard
+	fast-export "$1" | git -C "$2" fast-import --quiet
 	)
 }
 

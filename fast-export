@@ -82,6 +82,10 @@ def export_ref(ref, head):
     for rev in revs:
         export_commit(ref, rev)
 
+    wr('reset %s' % ref)
+    wr('from :%u' % marks.from_rev(head))
+    wr('')
+
 def main(args):
     global repo, marks
 
