@@ -27,6 +27,8 @@ setup() {
 	[ui]
 	username = H G Wells <wells@example.com>
 	EOF
+
+	export HGMERGE=true
 }
 
 setup
@@ -69,6 +71,54 @@ test_expect_success 'authors' '
 	) &&
 
 	git_clone hgrepo gitrepo
+'
+
+test_expect_success 'merge' '
+	test_when_finished "rm -rf hgrepo gitrepo" &&
+
+	(
+	hg init hgrepo &&
+	cd hgrepo &&
+	echo a > content &&
+	echo a > file1 &&
+	hg add content file1 &&
+	hg commit -m "origin" &&
+
+	echo b > content &&
+	echo b > file2 &&
+	hg add file2 &&
+	hg rm file1 &&
+	hg commit -m "right" &&
+
+	hg update -r0 &&
+	echo c > content &&
+	hg commit -m "left" &&
+
+	hg merge -r1 &&
+	echo c > content &&
+	hg resolve -m content &&
+	hg commit -m "merge"
+	) &&
+
+	git_clone hgrepo gitrepo &&
+
+	cat > expected <<-EOF &&
+	left
+	c
+	tree @:
+
+	content
+	file2
+	EOF
+
+	(
+	cd gitrepo
+	git show -q --format='%s' @^ &&
+	git show @:content &&
+	git show @:
+	) > actual &&
+
+	test_cmp expected actual
 '
 
 test_done

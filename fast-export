@@ -51,8 +51,12 @@ def convert_to_git_user(user):
         return 'Unknown <unknown>'
 
 def get_filechanges(repo, ctx, parents, files):
-    modified = frozenset(fname for fname in files if fname in ctx)
-    return modified, frozenset(files) - modified
+    if len(parents) <= 1:
+        modified = frozenset(fname for fname in files if fname in ctx)
+        return modified, frozenset(files) - modified
+    else:
+        stat = parents[0].status(ctx)
+        return frozenset(stat.modified + stat.added), frozenset(stat.removed)
 
 def export_commit(ref, rev):
     ctx = repo[rev]
