@@ -52,8 +52,8 @@ def convert_to_git_user(user):
 
 def get_filechanges(repo, ctx, parents, files):
     if len(parents) <= 1:
-        modified = frozenset(fname for fname in files if fname in ctx)
-        return modified, frozenset(files) - modified
+        removed = frozenset(ctx.filesremoved())
+        return frozenset(files) - removed, removed
     else:
         stat = parents[0].status(ctx)
         return frozenset(stat.modified + stat.added), frozenset(stat.removed)
