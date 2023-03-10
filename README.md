@@ -5,7 +5,7 @@ It's based on the code of
 based on Rocco Rutte's hg-fast-export, which is now maintained by
 Frej Drejhammar and lives on [hg-fast-export](https://github.com/frej/fast-export).
 
-To use it simple do:
+To use it simply do:
 
 ```
 git init git-repo
