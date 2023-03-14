@@ -7,7 +7,7 @@
 test_description='Main tests'
 
 # shellcheck source=/dev/null
-. "${SHARNESS_TEST_SRCDIR-/usr/share/sharness}"/sharness.sh
+. "${SHARNESS_TEST_SRCDIR-/usr/share/sharness}"/sharness.sh || exit 1
 
 check() {
 	echo "$3" > expected &&
