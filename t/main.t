@@ -27,8 +27,6 @@ setup() {
 	[ui]
 	username = H G Wells <wells@example.com>
 	EOF
-
-	export HGMERGE=true
 }
 
 setup
@@ -94,9 +92,7 @@ test_expect_success 'merge' '
 	echo c > content &&
 	hg commit -m "left" &&
 
-	hg merge -r1 &&
-	echo c > content &&
-	hg resolve -m content &&
+	HGMERGE=true hg merge -r1 &&
 	hg commit -m "merge"
 	) &&
 
