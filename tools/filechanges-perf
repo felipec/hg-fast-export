@@ -1,0 +1,175 @@
+#!/usr/bin/env python
+
+import subprocess
+import os
+import sys
+import shutil
+import time
+
+import mercurial.hg
+import mercurial.ui
+
+class Marks:
+
+    def __init__(self):
+        self.marks = {}
+
+    def get_mark(self, rev):
+        mark = len(self.marks) + 1
+        self.marks[rev] = mark
+        return mark
+
+    def from_rev(self, rev):
+        return self.marks[rev]
+
+    def clear(self):
+        self.marks.clear()
+
+url = sys.argv[1]
+revset = sys.argv[2] if len(sys.argv) > 2 else '0:1000'
+repo = mercurial.hg.repository(mercurial.ui.ui(), url.encode())
+marks = Marks()
+
+def wr(arg):
+    pipe.stdin.write(arg.encode() + b'\n')
+
+def wr_data(data):
+    pipe.stdin.write(b'data %d\n' % len(data))
+    pipe.stdin.write(data)
+
+def gittz(tz):
+    tz /= 60.0
+    return '%+03d%02d' % (tz / -60, tz % 60)
+
+def gitmode(flags):
+    return b'l' in flags and '120000' or b'x' in flags and '100755' or '100644'
+
+def convert_to_git_user(user):
+    return 'Foo <foo@bar.com>'
+
+from mercurial import node
+
+def file_mismatch(f1,f2):
+  """See if two revisions of a file are not equal."""
+  return node.hex(f1)!=node.hex(f2)
+
+def split_dict(dleft,dright,c=[],r=[],match=file_mismatch):
+  """Loop over our repository and find all changed and missing files."""
+  for left in dleft.keys():
+    right=dright.get(left,None)
+    if right==None:
+      # we have the file but our parent hasn't: add
+      c.append(left)
+    elif match(dleft[left],right) or gitmode(dleft.flags(left))!=gitmode(dright.flags(left)):
+      # we have it but checksums mismatch: add
+      c.append(left)
+  for right in dright.keys():
+    left=dleft.get(right,None)
+    if left==None:
+      # if parent has file but we don't: remove
+      r.append(right)
+    # change is already handled when comparing child against parent
+  return c,r
+
+def get_filechanges_0(repo,ctx,revision,parents,files,mleft):
+  if not parents:
+    modified=mleft.keys()
+    modified.sort()
+    removed=[]
+  else:
+    if len(parents) == 1:
+      f=repo.status(parents[0],revision)
+      modified=f.modified + f.added
+      removed=f.removed
+    else:
+      modified,removed=[],[]
+      for p in parents:
+        mright=repo[p].manifest()
+        modified,removed=split_dict(mleft,mright,modified,removed)
+      modified.sort()
+      removed.sort()
+  return modified,removed
+
+def get_filechanges_1(repo,ctx,revision,parents,files,mleft):
+  if not parents:
+    modified=files
+    removed=[]
+  else:
+    f=repo.status(parents[0],ctx)
+    modified=f.modified + f.added
+    removed=f.removed
+  return modified,removed
+
+def get_filechanges_2(repo, ctx, revision, parents, files, man):
+    if len(parents) <= 1:
+        removed = ctx.filesremoved()
+        return frozenset(files) - frozenset(removed), removed
+    else:
+        stat = repo.status(parents[0], ctx)
+        return stat.modified + stat.added, stat.removed
+
+def export_commit(ref, rev, f):
+    ctx = repo[rev]
+
+    _, user, (time, tz), files, desc, extra = repo.changelog.read(ctx.node())
+    author = '%s %d %s' % (convert_to_git_user(user), time, gittz(tz))
+
+    parents = [p for p in repo.changelog.parentrevs(rev) if p >= 0]
+    modified, removed = f(repo, ctx, rev, parents, files, ctx.manifest())
+
+    if not parents:
+        wr('reset %s' % ref)
+
+    wr('commit %s' % ref)
+    wr('mark :%d' % marks.get_mark(rev))
+    wr('committer %s' % author)
+    wr_data(desc + b'\n' + b'\n')
+
+    if parents:
+        wr('from :%d' % marks.from_rev(parents[0]))
+        if len(parents) > 1:
+            wr('merge :%d' % marks.from_rev(parents[1]))
+
+    for fname in removed:
+        wr('D %s' % fname.decode())
+    for fname in modified:
+        filectx = ctx.filectx(fname)
+        wr('M %s inline %s' % (gitmode(filectx.flags()), filectx.path().decode()))
+        wr_data(filectx.data())
+    wr('')
+
+def run_test(id, f):
+    global pipe
+
+    shutil.rmtree(id, ignore_errors=True)
+
+    subprocess.run(['git', 'init', '-q', id]) 
+    os.chdir(id)
+
+    pipe = subprocess.Popen(['git', 'fast-import', '--quiet'], stdin=subprocess.PIPE)
+
+    marks.clear()
+    for rev in repo.revs(revset):
+        export_commit('refs/heads/master', rev, f)
+
+    pipe.stdin.close()
+    pipe.wait()
+
+    subprocess.run(['git', 'rev-parse', 'master'])
+
+    os.chdir('..')
+
+algos = {
+    '0': get_filechanges_0,
+    '1': get_filechanges_1,
+    '2': get_filechanges_2,
+}
+
+def benchmark():
+    for id, f in algos.items():
+        start = time.time()
+        run_test(id, f)
+        end = time.time()
+        print('%s: %0.2f' % (id, end - start))
+
+benchmark()
