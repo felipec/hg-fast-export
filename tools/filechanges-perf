@@ -90,17 +90,7 @@ def get_filechanges_0(repo,ctx,revision,parents,files,mleft):
       removed.sort()
   return modified,removed
 
-def get_filechanges_1(repo,ctx,revision,parents,files,mleft):
-  if not parents:
-    modified=files
-    removed=[]
-  else:
-    f=repo.status(parents[0],ctx)
-    modified=f.modified + f.added
-    removed=f.removed
-  return modified,removed
-
-def get_filechanges_2(repo, ctx, revision, parents, files, man):
+def get_filechanges_1(repo, ctx, revision, parents, files, man):
     if not parents:
         return files, []
     else:
@@ -161,7 +151,6 @@ def run_test(id, f):
 algos = {
     '0': get_filechanges_0,
     '1': get_filechanges_1,
-    '2': get_filechanges_2,
 }
 
 def benchmark():
