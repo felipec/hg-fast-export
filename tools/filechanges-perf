@@ -101,9 +101,8 @@ def get_filechanges_1(repo,ctx,revision,parents,files,mleft):
   return modified,removed
 
 def get_filechanges_2(repo, ctx, revision, parents, files, man):
-    if len(parents) <= 1:
-        removed = ctx.filesremoved()
-        return frozenset(files) - frozenset(removed), removed
+    if not parents:
+        return files, []
     else:
         stat = repo.status(parents[0], ctx)
         return stat.modified + stat.added, stat.removed
