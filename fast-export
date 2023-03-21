@@ -22,9 +22,8 @@ def wr_data(data):
     os.write(1, data)
 
 def gittz(tz):
-    sign = 1 if tz >= 0 else -1
-    hours, minutes = divmod(abs(tz) // 60, 60)
-    return '%+03d%02d' % (-sign * hours, minutes)
+    tz /= 60.0
+    return '%+03d%02d' % (tz / -60, tz % 60)
 
 def gitmode(filectx):
     flags = filectx.flags()
