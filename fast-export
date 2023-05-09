@@ -54,7 +54,7 @@ def get_filechanges(repo, ctx, parents, files):
         return files, []
     else:
         stat = parents[0].status(ctx)
-        return frozenset(stat.modified + stat.added), frozenset(stat.removed)
+        return stat.modified + stat.added, stat.removed
 
 def export_commit(ref, rev):
     ctx = repo[rev]
