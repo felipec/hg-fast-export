@@ -1,3 +1,5 @@
+name: CI
+
 on:
   push:
 
@@ -7,6 +9,5 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install sharness
-        run:
-          git clone --depth 1 https://github.com/felipec/sharness.git t/sharness
+        run: git clone --depth 1 https://github.com/felipec/sharness.git t/sharness
       - run: SHARNESS_TEST_SRCDIR=t/sharness t/main.t
