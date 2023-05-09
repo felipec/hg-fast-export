@@ -50,9 +50,8 @@ def convert_to_git_user(user):
         return 'Unknown <unknown>'
 
 def get_filechanges(repo, ctx, parents, files):
-    if len(parents) <= 1:
-        removed = frozenset(ctx.filesremoved())
-        return frozenset(files) - removed, removed
+    if not parents:
+        return files, []
     else:
         stat = parents[0].status(ctx)
         return frozenset(stat.modified + stat.added), frozenset(stat.removed)
